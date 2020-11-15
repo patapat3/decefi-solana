@@ -1,0 +1,13 @@
+/program/target/
+/program/corpus
+/program/artifacts
+.idea/
+/program/.idea
+/node_modules
+/program/node_modules
+*.sw[po]
+/store
+/.cargo
+/dist
+.env
+
