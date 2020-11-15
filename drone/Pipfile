@@ -1,0 +1,15 @@
+[[source]]
+name = "decefi-drone"
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+[dev-packages]
+blake3 = "*"
+
+[packages]
+gql = {editable = true, git = "https://github.com/graphql-python/gql.git", ref = "v3.0.0a4"}
+solana = "*"
+aiohttp = "*"
+
+[requires]
+python_version = "3.8"

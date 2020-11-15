@@ -1,0 +1,6 @@
+## Drone
+*Drone* is a name used in Solana with the same meaning as Ethereum's Oracles.
+In our case the `drone` in `decefi-solana/drone` folder is a service that:
+1. Queries blockchain for orders hashes,
+2. Checks CCAI API for orders became executed,
+3. Notifies DeCeFi contract if the order is executed to unlock related funds.
