@@ -59,11 +59,11 @@ pub struct CancelOrderInstruction {
 #[cfg_attr(test, derive(Arbitrary, Serialize, Deserialize))]
 #[cfg_attr(feature = "fuzz", derive(arbitrary::Arbitrary))]
 pub enum DecefiInstruction {
-    Deposit,
-    Withdraw,
+    Deposit(NonZeroU64),
+    Withdraw(NonZeroU64),
     NewOrder(NewOrderInstruction),
     CancelOrder(CancelOrderInstruction),
-    CancelOrderByClientId(u64),
+    // CancelOrderByClientId(u64),
 }
 
 impl DecefiInstruction {
@@ -74,12 +74,51 @@ impl DecefiInstruction {
     }
 
     pub fn pack(&self) -> Vec<u8> {
-        let mut buf = Vec::with_capacity(43); // TODO fix packing/unpacking
-        buf
+        bincode::serialize(&(0u8, self)).unwrap()
     }
 
     pub fn unpack(versioned_bytes: &[u8]) -> Option<Self> {
-        return None;
+        if versioned_bytes.len() < 0 || versioned_bytes.len() > 512 { // #TODO: min/max?
+            return None;
+        }
+        let (&[version], &discrim, data) = array_refs![versioned_bytes, 1, 4; ..;];
+        if version != 0 {
+            return None;
+        }
+        let discrim = u32::from_le_bytes(discrim);
+        Some(match (discrim, data.len()) {
+            (0, 8) => {
+                let data_array = array_ref![data, 0, 8]; // u64 only
+                let fields = array_refs![data_array, 8];
+                let amount = NonZeroU64::new(u64::from_le_bytes(*fields.0));
+                DecefiInstruction::Deposit(amount)
+            },
+            (1, 8) => {
+                let data_array = array_ref![data, 0, 8]; // u64 only
+                let fields = array_refs![data_array, 8];
+                let amount = NonZeroU64::new(u64::from_le_bytes(*fields.0));
+                DecefiInstruction::Withdraw(amount)
+            },
+            (2, 256) => DecefiInstruction::NewOrder({
+                let data_arr = array_ref![data, 0, 256]; // u8x256 order hash
+                let hash = array_refs![data_array, 0, 256];
+                NewOrderInstruction { hash }
+
+            }),
+            (3, 33) => DecefiInstruction::CancelOrder({
+                let data_array = array_ref![data, 0, 33]; // order_hash, owner, owner_slot
+                let fields = array_refs![data_array, 0, 16, 16, 1];
+                let order_id = u128::from_le_bytes(*fields.0);
+                let owner = u64::from_le_bytes(*fields.1);
+                let owner_slot = u8::from_le_bytes(*fields.2);
+                CancelOrderInstruction {
+                    order_id,
+                    owner,
+                    owner_slot,
+                }
+            }),
+            _ => return None,
+        })
     }
 
     #[cfg(test)]
