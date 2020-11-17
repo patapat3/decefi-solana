@@ -89,25 +89,21 @@ impl DecefiInstruction {
         Some(match (discrim, data.len()) {
             (0, 8) => {
                 let data_array = array_ref![data, 0, 8]; // u64 only
-                let fields = array_refs![data_array, 8];
-                let amount = NonZeroU64::new(u64::from_le_bytes(*fields.0));
-                DecefiInstruction::Deposit(amount)
+                let amount = NonZeroU64::new(u64::from_le_bytes(*data_array));
+                amount
             },
             (1, 8) => {
                 let data_array = array_ref![data, 0, 8]; // u64 only
-                let fields = array_refs![data_array, 8];
-                let amount = NonZeroU64::new(u64::from_le_bytes(*fields.0));
-                DecefiInstruction::Withdraw(amount)
+                let amount = NonZeroU64::new(u64::from_le_bytes(*data_array));
+                amount
             },
             (2, 256) => DecefiInstruction::NewOrder({
                 let data_arr = array_ref![data, 0, 256]; // u8x256 order hash
-                let hash = array_refs![data_array, 0, 256];
-                NewOrderInstruction { hash }
-
+                NewOrderInstruction { *hash }
             }),
-            (3, 33) => DecefiInstruction::CancelOrder({
-                let data_array = array_ref![data, 0, 33]; // order_hash, owner, owner_slot
-                let fields = array_refs![data_array, 0, 16, 16, 1];
+            (3, 25) => DecefiInstruction::CancelOrder({
+                let data_array = array_ref![data, 0, 25]; // order_hash, owner, owner_slot
+                let fields = array_refs![data_array, 16, 8, 1];
                 let order_id = u128::from_le_bytes(*fields.0);
                 let owner = u64::from_le_bytes(*fields.1);
                 let owner_slot = u8::from_le_bytes(*fields.2);
